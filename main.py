@@ -1,9 +1,34 @@
 import pyautogui
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import time
 import sys
 import asyncio
 from EdgeGPT import Chatbot
 import json
+from pynput import mouse
+import pyperclip
+
+print("Place your cursor right before the first letter of the text box.")
+
+scan = True
+
+def on_click(x, y, button, pressed):
+    global scan, a, b
+    if pressed:
+        scan = False
+        print("Successfully registered cursor coordinate!")
+        a, b = pyautogui.position()
+        return False
+    
+listener = mouse.Listener(on_click=on_click)
+listener.start()
+
+while scan:
+    x, y = pyautogui.position()
+    print(f'X: {x} Y: {y}', end='\r')
 
 intro = "Hello there, I'm ScholarScribe, your personalized AI tool designed to effortlessly write your IB assessments for you."
 print(intro)
@@ -43,14 +68,38 @@ prompt = "I am seeking your assistance in creating a sample IB essay on "+n+". A
 screenWidth, screenHeight = pyautogui.size()
 currentMouseX, currentMouse = pyautogui.position()
 
-def write(text):
-    pyautogui.moveTo(250, 500)
+def paraphraser():
+    # Create a new instance of the Google Chrome driver
+    driver = webdriver.Chrome(executable_path=r'C:\Program Files\Google\Chrome\Application')
+
+    # Go to the paraphraser.io webpage
+    driver.get('https://www.paraphraser.io/')
+
+    # Find the text box and input some text
+    text_box = WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//textarea[@id="inputText"]')))
+    text_box.clear()
+    text_box.send_keys("Hello, world!")
+
+    # Find and click the paraphrase button
+    paraphrase_button = WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//button[@class="btn-paraphrase"]')))
+    paraphrase_button.click()
+
+    # Wait for the paraphrased text to appear and then copy it
+    paraphrased_text = WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.XPATH, '//textarea[@id="outputText"]'))).get_attribute('value')
+
+    print(paraphrased_text)
+
+    # Close the browser
+    driver.quit()
+
+def write(x, y, text):
+    pyautogui.moveTo(x, y)
     pyautogui.click()
-    # pyautogui.hotkey('command', 't')
+    pyautogui.hotkey('ctrl', 'a')
     pyautogui.write(text)
 
 text = asyncio.run(main(prompt=prompt))
-write(text=text)
+write(text=text, x=a, y=b)
 
 if __name__ == "__main__":
     asyncio.run(main())
